@@ -8,7 +8,7 @@ const WS_URL = 'ws://localhost:8080';
 
 let ws;
 
-let base64Chunks = [];
+let chunks = [];
 const DOWNLOAD_DIR = './downloads';
 let fileInfo = null;
 
@@ -34,47 +34,35 @@ function connect() {
   });
 
   ws.on('message', (data) => {
-    const message = data.toString();
-    try {
-      const json = JSON.parse(message);
-      switch (json.type) {
-        case 'FILE_INFO':
-          fileInfo = json;
-          base64Chunks = [];
-          console.log(`📦 Receiving file: ${json.fileName} (${json.size} bytes)`);
-          break;
+    const msg = JSON.parse(data.toString());
 
-        case 'FILE_CHUNK':
-          base64Chunks.push(json.data);
-          break;
+    switch (msg.type) {
+      case 'FILE_INFO':
+        fileInfo = msg;
+        chunks = [];
+        console.log(`📦 Receiving ${msg.fileName}`);
+        break;
 
-        case 'FILE_END': {
-          const fullBase64 = base64Chunks.join('');
-          const buffer = Buffer.from(fullBase64, 'base64');
+      case 'FILE_CHUNK':
+        chunks.push(msg.data); // 👈 plain string
+        break;
 
-          const outputPath = path.join(DOWNLOAD_DIR, fileInfo.fileName);
-          fs.writeFileSync(outputPath, buffer);
+      case 'FILE_END': {
+        const content = chunks.join('');
+        const outputPath = path.join(DOWNLOAD_DIR, fileInfo.fileName);
 
-          console.log(`✅ File saved: ${outputPath}`);
-          fileInfo = null;
-          base64Chunks = [];
-          break;
-        }
+        fs.writeFileSync(outputPath, content, 'utf8');
 
-        case 'ERROR':
-          console.error('❌ Server error:', json.message);
-          break;
-
-        default:
-          console.log('📩 Received JSON:', json);
+        console.log(`✅ File saved: ${outputPath}`);
+        fileInfo = null;
+        chunks = [];
+        break;
       }
-    } catch (err) {
-      console.log(err);
-      console.log('📩 Received:', message);
     }
-
     rl.prompt();
   });
+
+
 
   ws.on('close', () => {
     console.log('❌ Disconnected from WebSocket. Reconnecting in 5s...');
