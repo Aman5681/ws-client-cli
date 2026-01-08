@@ -85,22 +85,18 @@ function sendMessage(msg) {
   }
 }
 
-// Read input from CLI and send as JSON if possible
 rl.on('line', (line) => {
   const input = line.trim();
   if (!input) return rl.prompt();
 
   try {
-    // Try parsing as JSON first
     const obj = JSON.parse(input);
     sendMessage(obj);
   } catch {
     try {
-      // If invalid JSON, try eval to allow JS object syntax
       const obj = eval('(' + input + ')');
       sendMessage(obj);
     } catch {
-      // Fallback: send as raw string
       sendMessage(input);
     }
   }
@@ -108,5 +104,4 @@ rl.on('line', (line) => {
   rl.prompt();
 });
 
-// Start connection
 connect();
