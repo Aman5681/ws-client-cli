@@ -12,19 +12,16 @@ let chunks = [];
 const DOWNLOAD_DIR = './downloads';
 let fileInfo = null;
 
-// Setup readline interface for CLI input
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: 'WS> ',
 });
 
-// Ensure download dir exists
 if (!fs.existsSync(DOWNLOAD_DIR)) {
   fs.mkdirSync(DOWNLOAD_DIR);
 }
 
-// Connect to WebSocket
 function connect() {
   ws = new WebSocket(WS_URL);
 
@@ -44,7 +41,7 @@ function connect() {
         break;
 
       case 'FILE_CHUNK':
-        chunks.push(msg.data); // 👈 plain string
+        chunks.push(msg.data);
         break;
 
       case 'FILE_END': {
@@ -53,7 +50,6 @@ function connect() {
 
         fs.writeFileSync(outputPath, content, 'utf8');
 
-        console.log(`✅ File saved: ${outputPath}`);
         fileInfo = null;
         chunks = [];
         break;
@@ -65,16 +61,15 @@ function connect() {
 
 
   ws.on('close', () => {
-    console.log('❌ Disconnected from WebSocket. Reconnecting in 5s...');
+    console.log('Disconnected from WebSocket. Reconnecting in 5s...');
     setTimeout(connect, 5000);
   });
 
   ws.on('error', (err) => {
-    console.error('⚠️ WebSocket error:', err.message);
+    console.error('WebSocket error:', err.message);
   });
 }
 
-// Function to send a message (string or JS object)
 function sendMessage(msg) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     let messageToSend;
@@ -84,9 +79,9 @@ function sendMessage(msg) {
       messageToSend = msg;
     }
     ws.send(messageToSend);
-    console.log('📤 Sent:', messageToSend);
+    console.log('Sent:', messageToSend);
   } else {
-    console.log('⚠️ WebSocket not connected yet.');
+    console.log('WebSocket not connected yet.');
   }
 }
 
