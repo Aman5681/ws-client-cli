@@ -1,11 +1,16 @@
 
 import WebSocket from 'ws';
 import readline from 'readline';
+import fs from 'fs'
+import path from 'path';
 
-// Replace <YOUR_TOKEN_HERE> with your actual token
-const WS_URL = '';
+const WS_URL = 'ws://localhost:8080';
 
 let ws;
+
+let base64Chunks = [];
+const DOWNLOAD_DIR = './downloads';
+let fileInfo = null;
 
 // Setup readline interface for CLI input
 const rl = readline.createInterface({
@@ -13,6 +18,11 @@ const rl = readline.createInterface({
   output: process.stdout,
   prompt: 'WS> ',
 });
+
+// Ensure download dir exists
+if (!fs.existsSync(DOWNLOAD_DIR)) {
+  fs.mkdirSync(DOWNLOAD_DIR);
+}
 
 // Connect to WebSocket
 function connect() {
@@ -24,13 +34,45 @@ function connect() {
   });
 
   ws.on('message', (data) => {
+    const message = data.toString();
     try {
-      // Try to parse and pretty-print JSON messages
-      const json = JSON.parse(data.toString());
-      console.log('📩 Received:\n', JSON.stringify(json, null, 2));
-    } catch {
-      console.log('📩 Received:', data.toString());
+      const json = JSON.parse(message);
+      switch (json.type) {
+        case 'FILE_INFO':
+          fileInfo = json;
+          base64Chunks = [];
+          console.log(`📦 Receiving file: ${json.fileName} (${json.size} bytes)`);
+          break;
+
+        case 'FILE_CHUNK':
+          base64Chunks.push(json.data);
+          break;
+
+        case 'FILE_END': {
+          const fullBase64 = base64Chunks.join('');
+          const buffer = Buffer.from(fullBase64, 'base64');
+
+          const outputPath = path.join(DOWNLOAD_DIR, fileInfo.fileName);
+          fs.writeFileSync(outputPath, buffer);
+
+          console.log(`✅ File saved: ${outputPath}`);
+          fileInfo = null;
+          base64Chunks = [];
+          break;
+        }
+
+        case 'ERROR':
+          console.error('❌ Server error:', json.message);
+          break;
+
+        default:
+          console.log('📩 Received JSON:', json);
+      }
+    } catch (err) {
+      console.log(err);
+      console.log('📩 Received:', message);
     }
+
     rl.prompt();
   });
 
