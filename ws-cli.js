@@ -37,7 +37,7 @@ function connect() {
       case 'FILE_INFO':
         fileInfo = msg;
         chunks = [];
-        console.log(`📦 Receiving ${msg.fileName}`);
+        console.log(`Receiving ${msg.fileName}`);
         break;
 
       case 'FILE_CHUNK':
